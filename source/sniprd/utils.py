@@ -4,7 +4,24 @@
 
 from __future__ import unicode_literals, absolute_import
 
-import ConfigParser
+# py3 compat
+try:
+    import ConfigParser
+except ImportError:
+    import configparser as ConfigParser
+
+import sys
+if sys.version < '3':
+    import codecs
+
+    def u(x): return codecs.unicode_escape_decode(x)[0]
+    text_type = unicode
+    binary_type = str
+else:
+    def u(x): return str(x)
+    text_type = str
+    binary_type = bytes
+
 import datetime
 from dateutil.relativedelta import relativedelta as delta
 from dateutil.relativedelta import MO as MONDAY
@@ -77,7 +94,7 @@ def item(text, level=0, options=None):
         indent = 1
     # Shorten the text if necessary to match the desired maximum width
     width = options.width - indent - 2 if options.width else 333
-    eprint(u"{0}* {1}".format(u" " * indent, shorted(unicode(text), width)))
+    eprint(u"{0}* {1}".format(u" " * indent, shorted(u(text), width)))
 
 
 def pluralize(singular=None, plural=None):
@@ -143,8 +160,8 @@ def listed(items, singular=None, plural=None, max=None, quote=""):
 
 def ascii(text):
     """ Transliterate special unicode characters into pure ascii """
-    if not isinstance(text, unicode):
-        text = unicode(text)
+    if not isinstance(text, text_type):
+        text = u(text)
     return unicodedata.normalize('NFKD', text).encode('ascii', 'ignore')
 
 
@@ -260,7 +277,7 @@ class Logging(object):
         else:
             try:
                 Logging._level = Logging.MAPPING[int(os.environ["DEBUG"])]
-            except StandardError:
+            except Exception:
                 Logging._level = logging.WARN
         self.logger.setLevel(Logging._level)
 
@@ -404,7 +421,7 @@ class Coloring(object):
             # Detect from the environment variable COLOR
             try:
                 mode = int(os.environ["COLOR"])
-            except StandardError:
+            except Exception:
                 mode = COLOR_AUTO
         elif mode < 0 or mode > 2:
             raise RuntimeError("Invalid color mode '{0}'".format(mode))
@@ -475,11 +492,11 @@ class Date(object):
 
     def __str__(self):
         """ Ascii version of the string representation """
-        return ascii(unicode(self))
+        return ascii(u(self))
 
     def __unicode__(self):
         """ String format for printing """
-        return unicode(self.date)
+        return u(self.date)
 
     @staticmethod
     def this_week():
