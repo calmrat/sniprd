@@ -21,7 +21,7 @@ import sys
 
 
 def main():
-    py, msg_pth = sys.argv
+    py, msg_pth = sys.argv  # noqa
     msg_summary = open(msg_pth).readlines()[0]
     k = len(msg_summary)
     x = k - 50 - 1

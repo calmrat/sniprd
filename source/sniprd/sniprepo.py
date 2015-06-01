@@ -12,6 +12,8 @@ from sqlalchemy.ext.declarative import declarative_base
 Base = declarative_base()
 
 MAX_WIDTH = 50  # FIXME is this reasonable? 140? 79?
+# 50 is max 'subject' header for git commits?
+# SEE http://stackoverflow.com/questions/2290016/
 TODAY = str(Date("today"))
 SNIPPET_RE = re.compile(r'^(\d\d\d\d-\d\d-\d\d)?(.*)')
 AT_RE = re.compile('\^({0})'.format(EMAIL_REGEXP.pattern))
@@ -19,7 +21,7 @@ TAG_RE = re.compile('\#(\w+)')
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#  Snippets Repository
+#  Snips Repository
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 
@@ -105,17 +107,17 @@ class SnipRepo(object):
         return str('\n'.join(self._snippets))
 
     def __delitem__(self, i):
-        raise NotImplemented("OOps! Can not remove Snips!")
+        raise NotImplementedError("OOps! Can not remove {} Snips!".format(i))
 
     def insert(self, i, v):
-        raise NotImplemented("OOps! Can not insert Snips!")
+        raise NotImplementedError("OOps! Can not insert {} Snips!".format(i))
 
     def write(self, *args, **kwargs):
         k = len(self._snippets)
         log.debug('Writing {0} snippets to {1}'.format(k, self.uri))
 
     # FIXME: RENAME TO LS()
-    def snippets(self, *args, **kwargs):
+    def snippets(self):
         raise NotImplementedError("Must be defined by sub-class")
 
 
@@ -133,24 +135,23 @@ class SnipRepoSQLAlchemy(SnipRepo):
         Base.metadata.create_all(self.engine)
 
         for kwargs in iter(self._snippets):
-            session.add(Snippet(**kwargs))
-        else:
-            session.commit()
+            session.add(Snip(**kwargs))
+        session.commit()
         info('{0} snippets saved to {1}'.format(len(self), self.uri))
 
     def snippets(self, topic=None, limit=None):
         session = self.Session()
-        q = session.query(Snippet)  # query for all snippets
+        q = session.query(Snip)  # query for all snippets
         if topic:
-            q = q.filter(Snippet.topic == topic)
-        q = q.order_by(sqla.desc(Snippet.id))  # order in reverse
+            q = q.filter(Snip.topic == topic)
+        q = q.order_by(sqla.desc(Snip.id))  # order in reverse
         q = q.limit(limit) if limit else q  # grab the most recent X LIMIT
         snippets = sorted(q.all(), reverse=True)
         return snippets
 
 
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-#  Snippet SQLAlchemy Models
+#  Snip SQLAlchemy Models
 # ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
 # FIXME: Exception is hit when SQLite .db isn't created before query
@@ -182,7 +183,7 @@ class Snip(Base):
     at_csv = sqla.Column(sqla.String(512, convert_unicode=True))
 
     def __repr__(self):
-        return "<Snippet(on_date='{0}', topic='{1}', text='{2}')>".format(
+        return "<Snip(on_date='{0}', topic='{1}', text='{2}')>".format(
             self.on_date, self.topic, self.text)
 
     def __str__(self):
